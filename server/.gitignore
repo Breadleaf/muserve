@@ -8,4 +8,5 @@ server.csr
 server.key
 
 # app specific
-muserve.conf
+muserve.json
+dev.json
