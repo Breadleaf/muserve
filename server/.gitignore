@@ -1,0 +1,11 @@
+# python
+venv
+__pycache__
+
+# tls/ssl certs
+server.crt
+server.csr
+server.key
+
+# app specific
+muserve.conf
