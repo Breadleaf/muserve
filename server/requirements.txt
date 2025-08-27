@@ -1,2 +1,6 @@
 flask
 flask-cors
+
+textual
+textual-dev
+textual-serve

@@ -103,6 +103,4 @@ if __name__ == "__main__":
 
     server = Server.Server()
 
-    sys.exit(
-        server.start()
-    )
+    server.start()
