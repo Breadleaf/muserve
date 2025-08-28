@@ -54,9 +54,9 @@ CREATE TABLE playlist_songs (
 	song_id INT NOT NULL,
 	added_by INT NOT NULL,
 	PRIMARY KEY (playlist_id, position),
-	PRIMARY KEY (playlist_id) REFERENCES playlists(id),
-	PRIMARY KEY (song_id) REFERENCES songs(id),
-	PRIMARY KEY (added_by) REFERENCES users(id),
+	FOREIGN KEY (playlist_id) REFERENCES playlists(id),
+	FOREIGN KEY (song_id) REFERENCES songs(id),
+	FOREIGN KEY (added_by) REFERENCES users(id)
 );
 
 CREATE TABLE playlist_shares (
