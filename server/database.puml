@@ -1,0 +1,116 @@
+@startuml
+
+' Layout/Style
+left to right direction
+skinparam linetype ortho
+hide methods
+hide circle
+
+' Enums
+
+enum playlist_visibility {
+	private
+	public
+	shared
+}
+
+' Entities
+
+entity users {
+	* id : integer <<PK>>
+	--
+	name : varchar
+	email : varchar <<UNIQUE>>
+	is_admin : boolean <<DEFAULT:false>>
+}
+
+entity artists {
+	* id : integer <<PK>>
+	--
+	name : varchar <<NOT NULL, UNIQUE>>
+}
+
+entity songs {
+	* id : integer <<PK>>
+	--
+	title : varchar <<NOT NULL>>
+	artist_id : integer <<FK artists.id, NOT NULL>> ' canonical artist
+	uploaded_by : integer <<FK users.id, NOT NULL>>
+	--
+	{index} (artist_id)
+	{index} (uploaded_by)
+	{index} (title, artist_id)
+}
+
+entity albums {
+	* id : integer <<PK>>
+	--
+	title : varchar <<NOT NULL>>
+	artist_id : integer <<FK artists.id, NOT NULL>>
+	--
+	{unique} (artist_id, title)
+	{index} (artist_id)
+}
+
+entity album_songs {
+	* album_id : integer <<FK albums.id, NOT NULL>>
+	* song_id : integer <<FK songs.id, NOT NULL>>
+	--
+	{index} (song_id)
+	{pk} (album_id, song_id)
+}
+
+entity playlists {
+	* id : integer <<PK>>
+	--
+	title : varchar <<NOT NULL>>
+	owner_id : integer <<FK users.id, NOT NULL>>
+	visibility : playlist_visibility <<NOT NULL, DEFAULT:'private'>>
+	--
+	{unique} (owner_id, title)
+	{index} (visibility)
+	{index} (owner_id)
+}
+
+entity playlist_songs {
+	* playlist_id : integer <<FK playlists.id, NOT NULL>>
+	* position : integer <<NOT NULL>> ' 1-based ordering
+	--
+	song_id : integer <<FK songs.id, NOT NULL>>
+	added_by : integer <<FK users.id, NOT NULL>>
+	--
+	{pk} (playlist_id, position)
+	{index} (song_id)
+	{index} (added_by)
+}
+
+entity playlist_shares {
+	* playlist_id : integer <<FK playlists.id, NOT NULL>>
+	* user_id : integer <<FK users.id, NOT NULL>>
+	--
+	is_editor : boolean <<NOT NULL, DEFAULT:false>>
+	--
+	{pk} (playlist_id, user_id)
+	{index} (user_id)
+}
+
+' Relationships
+
+artists ||--o{ songs : artist_id
+users ||--o{ songs : uploaded_by
+
+artists ||--o{ albums : artist_id
+
+albums ||--o{ album_songs : album_id
+songs ||-o{ album_songs : song_id
+
+users ||--o{ playlists : owner_id
+
+playlists ||--o{ playlist_songs : playlist_id
+songs ||--o{ playlist_songs : song_id
+users ||--o{ playlist_songs : added_by
+
+playlists ||--o{ playlist_shares : playlist_id
+users ||--o{ playlist_shares : user_id
+
+@enduml
