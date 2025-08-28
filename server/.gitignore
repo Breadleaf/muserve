@@ -10,3 +10,6 @@ server.key
 # app specific
 muserve.json
 dev.json
+
+# docker / postgres
+logfile

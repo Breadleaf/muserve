@@ -104,3 +104,8 @@ if __name__ == "__main__":
     server = Server.Server()
 
     server.start()
+
+    # server.start() starts the server in a thread, while(True) keeps the app
+    # running
+    while (True):
+        pass
