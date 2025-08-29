@@ -107,5 +107,5 @@ if __name__ == "__main__":
 
     # server.start() starts the server in a thread, while(True) keeps the app
     # running
-    while (True):
+    while True:
         pass

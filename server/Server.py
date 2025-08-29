@@ -48,3 +48,9 @@ class Server:
 
     def stop(self):
         self._shutdown_flag.set()
+
+if __name__ == "__main__":
+    server = Server()
+    server.start()
+    while True:
+        pass
