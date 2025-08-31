@@ -43,7 +43,10 @@ class Server:
         threading.Thread(target=self._monitor_commands, daemon=True).start()
 
         # start the flask server in a thread
-        self.flask_thread = threading.Thread(target=self._run_flask, daemon=True)
+        self.flask_thread = threading.Thread(
+            target=self._run_flask,
+            daemon=True
+        )
         self.flask_thread.start()
 
     def stop(self):
