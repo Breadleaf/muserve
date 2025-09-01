@@ -1,7 +1,3 @@
-import flask
+import Server
 
-app = flask.Flask(__name__)
-
-@app.route("/")
-def root():
-    return "hello!"
+server = Server.create_server()

@@ -22,6 +22,8 @@ if __name__ == "__main__":
         sys.exit(1)
 
     cur = con.cursor()
+    
+    """
 
     try:
         with open("./queries/add_user.sql", "r") as f:
@@ -46,3 +48,9 @@ if __name__ == "__main__":
 
     cur.close()
     con.close()
+
+    """
+
+    cur.execute("SELECT * FROM users;")
+    res = cur.fetchall()
+    print(res)
