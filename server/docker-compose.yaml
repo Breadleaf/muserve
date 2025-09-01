@@ -26,7 +26,7 @@ services:
     working_dir: /app
     volumes:
       - ./:/app:rw
-    command: ["python", "main.py", "--conf", "example.json"]
+    command: ["python", "main.py"]
     ports:
       - "8000:8000"
 
