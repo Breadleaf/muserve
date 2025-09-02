@@ -24,5 +24,34 @@ class DatabaseHandler:
             )
 
         except psycopg2.Error as e:
-            print(f"error connecting to PostgreSQL server: {e}", file=sys.stderr)
+            print(
+                f"error connecting to PostgreSQL server: {e}",
+                file=sys.stderr
+            )
             sys.exit(1)
+
+    def fetch(self, query, values=()):
+        try:
+            cur = self.con.cursor()
+            cur.execute(query, values)
+            res = cur.fetchall()
+
+            # return (True, result) for golang-like error handling
+            return (True, res)
+        
+        except psycopg2.Error as e:
+            # return (False, error) for golang-like error handling
+            return (False, f"db error from fetch(): {e}")
+
+    def insert(self, query, values=()):
+        try:
+            cur = self.con.cursor()
+            cur.execute(query, values)
+            self.con.commit()
+            cur.close()
+
+            # return no error
+            return None
+
+        except psycopg2.Error as e:
+            return f"db error from insert(): {e}"

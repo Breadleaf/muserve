@@ -15,32 +15,23 @@ def create_server():
     # NOTE: here to test connections to the db
     @server.route("/add/<username>/<email>")
     def add(username, email):
-        con = db_handler.con
-        try:
-            cur = con.cursor()
-            cur.execute(
-                "INSERT INTO users (name, email) VALUES (%s, %s);",
-                (username, email)
-            )
-            con.commit()
-            cur.close()
-        except psycopg2.Error as e:
-            return "Failed to add to db :("
-        return "Done!"
+        err = db_handler.insert(
+            "INSERT INTO users (name, email) VALUES (%s, %s);",
+            (username, email)
+        )
+
+        return err if err else "Done!"
 
     # TODO: remove
     # NOTE: here to test connections to the db
     @server.route("/get")
     def get():
-        con = db_handler.con
-        try:
-            cur = con.cursor()
-            cur.execute("SELECT * FROM users;")
-            res = cur.fetchall()
-            cur.close()
-        except psycopg2.Error as e:
-            return "Failed to get from db :("
-        return "\n".join(str(res))
+        (ok, res) = db_handler.fetch(
+            "SELECT * FROM users;",
+        )
+
+        # res stores an error if ok is False
+        return "\n".join(str(res)) if ok else res
 
     return server 
 
