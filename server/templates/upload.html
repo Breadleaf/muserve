@@ -1,0 +1,40 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<title>Muserve File Upload</title>
+	</head>
+	<body>
+		<div id="drop" style="border-style: solid; border-color: red; border-width: 5px;">
+			<p>drop a file here</p>
+		</div>
+		<pre id="drop_output"></pre>
+		<script>
+			window.addEventListener("DOMContentLoaded", (e) => {
+				window.addEventListener("dragover", (e) => {
+					e.preventDefault();
+				});
+
+				window.addEventListener("drop", (e) => {
+					e.preventDefault();
+				});
+
+				const drop = document.getElementById("drop");
+				const out = document.getElementById("drop_output");
+
+				drop.addEventListener("drop", (e) => {
+					e.preventDefault();
+					let result = "";
+					[...e.dataTransfer.items].forEach((item, idx) => {
+						if (item.kind == "file") {
+							const file = item.getAsFile();
+							result += `- file[${idx}].name = ${file.name}\n`
+						}
+					});
+					out.textContent = result;
+				});
+			});
+		</script>
+	</body>
+</html>

@@ -7,6 +7,15 @@ import urllib.parse as up
 class DatabaseHandler:
     # def __init__(self, db_url):
     def __init__(self):
+        # TODO: find less hacky workaround
+        # NOTE: if LOCAL_MODE!="" disable database
+        # disable connection to psql
+        self.local_mode = os.environ.get("LOCAL_MODE", "") != ""
+
+        # NOTE: if LOCAL_MODE!="" disable database
+        if self.local_mode:
+            return
+
         db_url = os.environ.get("DATABASE_URL", None)
         if not db_url:
             print(f"envvar DATABASE_URL doesn't exist", file=sys.stderr)
@@ -31,6 +40,10 @@ class DatabaseHandler:
             sys.exit(1)
 
     def fetch(self, query, values=()):
+        # NOTE: if LOCAL_MODE!="" disable database
+        if self.local_mode:
+            return (True, f"local / query: {str(query)}, values: {str(values)}")
+
         try:
             cur = self.con.cursor()
             cur.execute(query, values)
@@ -44,6 +57,11 @@ class DatabaseHandler:
             return (False, f"db error from fetch(): {e}")
 
     def insert(self, query, values=()):
+        # NOTE: if LOCAL_MODE!="" disable database
+        if self.local_mode:
+            print(f"query: {str(query)}, values: {str(values)}")
+            return None
+
         try:
             cur = self.con.cursor()
             cur.execute(query, values)

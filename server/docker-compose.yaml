@@ -23,6 +23,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://devuser:devpass@db:5432/myapp_dev
+      LOCAL_MODE: " " # TODO: remove when testing with database enabled
+      # LOCAL_MODE: ""
     working_dir: /app
     volumes:
       - ./:/app:rw

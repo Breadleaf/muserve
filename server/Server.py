@@ -13,8 +13,8 @@ def create_server():
 
     # TODO: remove
     # NOTE: here to test connections to the db
-    @server.route("/add/<username>/<email>")
-    def add(username, email):
+    @server.route("/add_user/<username>/<email>")
+    def add_user(username, email):
         err = db_handler.insert(
             "INSERT INTO users (name, email) VALUES (%s, %s);",
             (username, email)
@@ -24,14 +24,18 @@ def create_server():
 
     # TODO: remove
     # NOTE: here to test connections to the db
-    @server.route("/get")
-    def get():
+    @server.route("/get_users")
+    def get_users():
         (ok, res) = db_handler.fetch(
             "SELECT * FROM users;",
         )
 
         # res stores an error if ok is False
         return "\n".join(str(res)) if ok else res
+
+    @server.route("/upload")
+    def upload():
+        return flask.render_template("upload.html")
 
     return server 
 
