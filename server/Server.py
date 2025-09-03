@@ -1,59 +1,84 @@
 import flask
-import threading
-import logging
-import queue
-import time
 
-class Server:
-    def __init__(self, command_queue=None, log_handler=None):
-        self.app = flask.Flask(__name__)
-        self.command_queue = command_queue or queue.Queue()
-        self._shutdown_flag = threading.Event()
+import DatabaseHandler
+import MusicHandler
 
-        if log_handler:
-            handler = logging.StreamHandler(log_handler)
-            handler.setLevel(logging.INFO)
-            self.app.logger.addHandler(handler)
-            self.app.logger.setLevel(logging.INFO)
+def create_server():
+    server = flask.Flask(__name__)
 
-        @self.app.route("/")
-        def home():
-            return "Hello ~"
+    db_handler = DatabaseHandler.DatabaseHandler()
+    music_handler = MusicHandler.MusicHandler(["audio/mpeg"])
 
-    def _run_flask(self):
-        self.app.run(
-            host="0.0.0.0",
-            port=8000,
-            ssl_context=("server.crt", "server.key"),
-            use_reloader=False
+    @server.route("/")
+    def root():
+        return "hello from create_server!"
+
+    # TODO: remove
+    # NOTE: here to test connections to the db
+    @server.route("/add_user/<username>/<email>")
+    def add_user(username, email):
+        err = db_handler.insert(
+            "INSERT INTO users (name, email) VALUES (%s, %s);",
+            (username, email)
         )
 
-    def _monitor_commands(self):
-        while not self._shutdown_flag.is_set():
-            try:
-                command = self.command_queue.get(timeout=1)
-                if command == "shutdown":
-                    print("[SERVER]: Received shutdown command")
-                    self._shutdown_flag.set()
-            except queue.Empty:
-                continue
+        return err if err else "Done!"
 
-    def start(self):
-        # start the command listener
-        threading.Thread(target=self._monitor_commands, daemon=True).start()
-
-        # start the flask server in a thread
-        self.flask_thread = threading.Thread(
-            target=self._run_flask,
-            daemon=True
+    # TODO: remove
+    # NOTE: here to test connections to the db
+    @server.route("/get_users")
+    def get_users():
+        (ok, res) = db_handler.fetch(
+            "SELECT * FROM users;",
         )
-        self.flask_thread.start()
 
-    def stop(self):
-        self._shutdown_flag.set()
+        # res stores an error if ok is False
+        return "\n".join(str(res)) if ok else res
+
+    @server.route("/upload")
+    def upload():
+        return flask.render_template("upload.html")
+
+    @server.route("/send", methods=["POST"])
+    def send():
+        uploaded_files = list(flask.request.files.values())
+
+        if not uploaded_files:
+            return flask.jsonify({"error": "no files uploaded"}), 400
+
+        file_info = []
+        for file in uploaded_files:
+            if file.filename:
+                file_contents = file.read()
+
+                valid_file_type = music_handler.validate_file(file_contents)
+
+                if valid_file_type:
+                    # TODO: remove this line
+                    file.save(f"./{file.filename}")
+
+                # ignore will prevent program from crashing if an UTF-8 character is found
+                snippet = file_contents[:50].decode("utf-8", "ignore")
+
+                file_info.append({
+                    "filename": file.filename,
+                    "content_type": file.content_type,
+                    "size": len(file_contents),
+                    "snippet": snippet,
+                })
+
+        for fi in file_info:
+            print(f"file info: {fi}\nvalid mimetype: {valid_file_type}")
+
+        return flask.jsonify({"message": "files received successfully"})
+
+    return server 
 
 if __name__ == "__main__":
-    server = Server()
-    server.start()
-    while True:
-        pass
+    server = create_server()
+    server.run(
+        host="0.0.0.0",
+        port=8000,
+        ssl_context=("server.crt", "server.key"),
+        use_reloader=False
+    )
