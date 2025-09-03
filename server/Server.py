@@ -1,11 +1,13 @@
 import flask
 
 import DatabaseHandler
+import MusicHandler
 
 def create_server():
     server = flask.Flask(__name__)
 
     db_handler = DatabaseHandler.DatabaseHandler()
+    music_handler = MusicHandler.MusicHandler(["audio/mpeg"])
 
     @server.route("/")
     def root():
@@ -36,6 +38,39 @@ def create_server():
     @server.route("/upload")
     def upload():
         return flask.render_template("upload.html")
+
+    @server.route("/send", methods=["POST"])
+    def send():
+        uploaded_files = list(flask.request.files.values())
+
+        if not uploaded_files:
+            return flask.jsonify({"error": "no files uploaded"}), 400
+
+        file_info = []
+        for file in uploaded_files:
+            if file.filename:
+                file_contents = file.read()
+
+                valid_file_type = music_handler.validate_file(file_contents)
+
+                if valid_file_type:
+                    # TODO: remove this line
+                    file.save(f"./{file.filename}")
+
+                # ignore will prevent program from crashing if an UTF-8 character is found
+                snippet = file_contents[:50].decode("utf-8", "ignore")
+
+                file_info.append({
+                    "filename": file.filename,
+                    "content_type": file.content_type,
+                    "size": len(file_contents),
+                    "snippet": snippet,
+                })
+
+        for fi in file_info:
+            print(f"file info: {fi}\nvalid mimetype: {valid_file_type}")
+
+        return flask.jsonify({"message": "files received successfully"})
 
     return server 
 

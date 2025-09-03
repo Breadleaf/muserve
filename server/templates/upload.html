@@ -4,9 +4,16 @@
 		<meta charset="utf-8">
 		<meta name="viewport" content="width=device-width,initial-scale=1">
 		<title>Muserve File Upload</title>
+<style>
+#drop {
+	border-style: solid;
+	border-color: red;
+	border-width: 5px;
+}
+</style>
 	</head>
 	<body>
-		<div id="drop" style="border-style: solid; border-color: red; border-width: 5px;">
+		<div id="drop">
 			<p>drop a file here</p>
 		</div>
 		<pre id="drop_output"></pre>
@@ -25,15 +32,46 @@
 
 				drop.addEventListener("drop", (e) => {
 					e.preventDefault();
-					let result = "";
+
+					let files = [];
 					[...e.dataTransfer.items].forEach((item, idx) => {
 						if (item.kind == "file") {
 							const file = item.getAsFile();
-							result += `- file[${idx}].name = ${file.name}\n`
+							if (file) {
+								files.push(file);
+							}
 						}
 					});
-					out.textContent = result;
+
+					if (files.length > 0) {
+						sendFiles(files);
+					}
+
+					// out.textContent = result;
 				});
+
+				async function sendFiles(files) {
+					const formData = new FormData();
+					files.forEach((file, index) => {
+						formData.append(`file-${index}`, file, file.name);
+					});
+
+					try {
+						const resp = await fetch("/send", {
+							method: "POST",
+							body: formData,
+						});
+
+						if (resp.ok) {
+							const res = await resp.text();
+							out.textContent = `upload successful!\nserver response: ${res}`;
+						} else {
+							out.textContent = `upload failed: ${res.statusText}`;
+						}
+					} catch (error) {
+						out.textContent = `an error occured: ${error.message}`;
+					}
+				}
 			});
 		</script>
 	</body>
