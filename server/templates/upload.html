@@ -39,15 +39,23 @@ ul {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	padding: 2.5px 0px;
 }
 .file-row button {
 	padding: 2px 6px;
 }
+.file-row span {
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-wrap: nowrap;
+}
 </style>
 	</head>
 	<body>
-		<div id="drop">
-			<p>Drop files here (you can drop multiple times)</p>
+		<div style="padding: 2% 2%;">
+			<div id="drop">
+				<p>Drop files here (you can drop multiple times)</p>
+			</div>
 		</div>
 
 		<br />
@@ -99,9 +107,6 @@ ul {
 						const li = document.createElement("li");
 						li.className = "file-row";
 
-						const span = document.createElement("span");
-						span.textContent = `${file.name} - ${formatFileSize(file.size)}`;
-
 						const button = document.createElement("button");
 						button.textContent = "x";
 						button.addEventListener("click", () => {
@@ -112,8 +117,12 @@ ul {
 							render();
 						});
 
-						li.appendChild(span);
+						const span = document.createElement("span");
+						span.textContent = `${file.name} - ${formatFileSize(file.size)}`;
+
 						li.appendChild(button);
+						li.appendChild(span);
+
 						list.appendChild(li);
 					});
 
@@ -175,7 +184,7 @@ ul {
 
 				// make the file picker work
 				picker.addEventListener("change", (ev) => {
-					if (ev.target.files?.length) stageFiles(e.target.files);
+					if (ev.target.files?.length) stageFiles(ev.target.files);
 					picker.value = ""; // allow the picker to pick the same file later
 				});
 
