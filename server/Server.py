@@ -1,5 +1,7 @@
 import flask
 
+import tempfile
+
 import DatabaseHandler
 import MusicHandler
 
@@ -55,7 +57,10 @@ def create_server():
 
                 if valid_file_type:
                     # TODO: remove this line
-                    file.save(f"./{file.filename}")
+                    with tempfile.TemporaryDirectory() as tempdir:
+                        save_path = f"{tempdir}/{file.filename}"
+                        file.save(save_path)
+                        print(save_path, flush=True)
 
                 # ignore will prevent program from crashing if an UTF-8 character is found
                 snippet = file_contents[:50].decode("utf-8", "ignore")
@@ -68,7 +73,7 @@ def create_server():
                 })
 
         for fi in file_info:
-            print(f"file info: {fi}\nvalid mimetype: {valid_file_type}")
+            print(f"file info: {fi}\nvalid mimetype: {valid_file_type}", flush=True)
 
         return flask.jsonify({"message": "files received successfully"})
 
