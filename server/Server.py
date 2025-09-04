@@ -1,6 +1,8 @@
 import flask
+import werkzeug
 
 import tempfile
+import threading
 
 import DatabaseHandler
 import MusicHandler
@@ -48,34 +50,67 @@ def create_server():
         if not uploaded_files:
             return flask.jsonify({"error": "no files uploaded"}), 400
 
-        file_info = []
-        for file in uploaded_files:
-            if file.filename:
-                file_contents = file.read()
+        def process_file(file, outputs, idx):
+            try:
+                with tempfile.TemporaryDirectory() as tempdir:
+                    # reset file pointer just in case not perfect
+                    file.seek(0)
 
-                valid_file_type = music_handler.validate_file(file_contents)
+                    out = []
 
-                if valid_file_type:
-                    # TODO: remove this line
-                    with tempfile.TemporaryDirectory() as tempdir:
-                        save_path = f"{tempdir}/{file.filename}"
-                        file.save(save_path)
-                        print(save_path, flush=True)
+                    # save to temp dir
+                    safe_name = werkzeug.utils.secure_filename(file.filename or f"upload_{idx}")
+                    save_path = f"{tempdir}/{safe_name}"
+                    file.save(save_path)
 
-                # ignore will prevent program from crashing if an UTF-8 character is found
-                snippet = file_contents[:50].decode("utf-8", "ignore")
+                    out.append(f"processing file: {save_path}")
 
-                file_info.append({
-                    "filename": file.filename,
-                    "content_type": file.content_type,
-                    "size": len(file_contents),
-                    "snippet": snippet,
-                })
+                    # process the file
+                    file_buffers, _, err = music_handler.convert_file(save_path, safe_name)
+                    if file_buffers:
+                        out.append(f"buffers: {file_buffers}")
+                    else:
+                        out.append("error converting files: {err}")
 
-        for fi in file_info:
-            print(f"file info: {fi}\nvalid mimetype: {valid_file_type}", flush=True)
+                    outputs[idx] = "\n".join(out)
+            except Exception as e:
+                outputs[idx] = f"error converting files: {e}"
 
-        return flask.jsonify({"message": "files received successfully"})
+        threads = []
+        outputs = ["" for _ in uploaded_files]
+
+        for idx, file in enumerate(uploaded_files):
+            if not file or file.filename:
+                outputs[idx] = "skipped: empty filename"
+
+            # check if file is valid
+            file_contents = file.read()
+
+            valid_file_type = music_handler.validate_file(file_contents)
+            if not valid_file_type:
+                outputs[idx] = "skipped: invalid file type"
+                continue
+
+            # reset file for processing
+            file.seek(0)
+
+            # create a thread to process the file
+            thread = threading.Thread(
+                target=process_file,
+                args=(file, outputs, idx,)
+            )
+            threads.append(thread)
+
+        for thread in threads:
+            thread.start()
+
+        for thread in threads:
+            thread.join()
+
+        for idx, output in enumerate(outputs):
+            print(f"thread #{idx}'s output:\n{output}\n", flush=True)
+
+        return flask.jsonify({"message": "files received and processed successfully"})
 
     return server 
 

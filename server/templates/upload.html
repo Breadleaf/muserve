@@ -1,77 +1,228 @@
 <!doctype html>
 <html>
 	<head>
-		<meta charset="utf-8">
-		<meta name="viewport" content="width=device-width,initial-scale=1">
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<title>Muserve File Upload</title>
 <style>
 #drop {
-	border-style: solid;
-	border-color: red;
-	border-width: 5px;
+	border: 5px dashed black;
+	border-radius: 15px;
+	text-align: center;
+	padding: 25px;
+	transition: border-color 0.5s, background 0.5s, transform 0.3s;
+}
+#drop.is-dragover {
+	border-color: rgba(246, 18, 136, 0.45);
+	background: rgba(246, 18, 136, 0.11);
+	transform: scale(103%);
+}
+#controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+#picker {
+	margin-left: auto;
+}
+button {
+	padding: 20px 30px;
+	cursor: pointer;
+}
+ul {
+	padding-left: 20px;
+}
+#drop_output {
+	white-space: pre-wrap;
+}
+.file-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+.file-row button {
+	padding: 2px 6px;
 }
 </style>
 	</head>
 	<body>
 		<div id="drop">
-			<p>drop a file here</p>
+			<p>Drop files here (you can drop multiple times)</p>
 		</div>
+
+		<br />
+
+		<div id="controls">
+			<button id="upload" disabled>Upload</button>
+			<button id="clear" disabled>Clear</button>
+			<input id="picker" type="file" multiple></input>
+		</div>
+
+		<p>Staged files</p>
+		<ul id="filesList"></ul>
+
 		<pre id="drop_output"></pre>
+
 		<script>
-			window.addEventListener("DOMContentLoaded", (e) => {
-				window.addEventListener("dragover", (e) => {
-					e.preventDefault();
-				});
-
-				window.addEventListener("drop", (e) => {
-					e.preventDefault();
-				});
-
+			window.addEventListener("DOMContentLoaded", () => {
 				const drop = document.getElementById("drop");
 				const out = document.getElementById("drop_output");
+				const list = document.getElementById("filesList");
+				const upload = document.getElementById("upload");
+				const clear = document.getElementById("clear");
+				const picker = document.getElementById("picker");
+				
+				// array of staged files to send to the server
+				const staged = [];
 
-				drop.addEventListener("drop", (e) => {
-					e.preventDefault();
+				// helper functions
+				const formatFileSize = (size) => {
+					// NOTE: kibi, mebi, and gibi are
+					//       kilo, mega, and giga but in base 2 rather base 10
+					const kibibyte = 1024;
+					const mebibyte = 1024**2;
+					const gibibyte = 1024**3;
+					if (size < kibibyte) return `${size} B`;
+					if (size < mebibyte) return `${(size/kibibyte).toFixed(1)} KB`;
+					if (size < gibibyte) return `${(size/mebibyte).toFixed(1)} MB`;
+					return `${(size/gibibyte).toFixed(1)} GB`;
+				};
 
-					let files = [];
-					[...e.dataTransfer.items].forEach((item, idx) => {
-						if (item.kind == "file") {
-							const file = item.getAsFile();
-							if (file) {
-								files.push(file);
-							}
-						}
+				const fileKey = (file) => `${file.name}::${file.size}::${file.lastModified}`;
+
+				const render = () => {
+					// clear the list's text
+					list.innerHTML = "";
+
+					// for each file, add it as a list item to the list
+					staged.forEach((file, idx) => {
+						const li = document.createElement("li");
+						li.className = "file-row";
+
+						const span = document.createElement("span");
+						span.textContent = `${file.name} - ${formatFileSize(file.size)}`;
+
+						const button = document.createElement("button");
+						button.textContent = "x";
+						button.addEventListener("click", () => {
+							// remove item from staged items
+							staged.splice(idx, 1);
+
+							// render changes
+							render();
+						});
+
+						li.appendChild(span);
+						li.appendChild(button);
+						list.appendChild(li);
 					});
 
-					if (files.length > 0) {
-						sendFiles(files);
+					const hasFiles = staged.length > 0;
+					upload.disabled = !hasFiles;
+					clear.disabled = !hasFiles;
+				};
+
+				const stageFiles = (files) => {
+					// update file list
+					const seen = new Set(staged.map(fileKey));
+					for (const f of files) {
+						const key = fileKey(f);
+						if (!seen.has(key)) {
+							staged.push(f);
+							seen.add(key);
+						}
 					}
 
-					// out.textContent = result;
+					// render changes
+					render();
+				};
+
+				// drag and drop visuals
+				["dragenter", "dragover"].forEach(eventName => {
+					drop.addEventListener(eventName, (ev) => {
+						ev.preventDefault();
+						drop.classList.add("is-dragover");
+					});
 				});
 
-				async function sendFiles(files) {
+				["dragleave", "drop"].forEach(eventName => {
+					drop.addEventListener(eventName, (ev) => {
+						ev.preventDefault();
+						drop.classList.remove("is-dragover");
+					});
+				});
+
+				// make the drag and drop take the files and stage them
+				drop.addEventListener("drop", (ev) => {
+					const files = [];
+
+					// get the items from the dataTransfer
+					const items = ev.dataTransfer?.items;
+					if (items && items.length) {
+						for (const file of items) {
+							if (file.kind === "file") {
+								const f = file.getAsFile();
+								if (f) files.push(f);
+							}
+						}
+					} else if (ev.dataTransfer?.files?.length) {
+						for (const f of ev.dataTransfer.files) files.push(f);
+					}
+
+					// if there are files, add them to the staged files
+					if (files.length) stageFiles(files);
+				});
+
+				// make the file picker work
+				picker.addEventListener("change", (ev) => {
+					if (ev.target.files?.length) stageFiles(e.target.files);
+					picker.value = ""; // allow the picker to pick the same file later
+				});
+
+				// make the upload button work
+				upload.addEventListener("click", async () => {
+					out.textContent = "Uploading files...";
+					
+					// send files to server
 					const formData = new FormData();
-					files.forEach((file, index) => {
+					staged.forEach((file, index) => {
 						formData.append(`file-${index}`, file, file.name);
 					});
 
 					try {
-						const resp = await fetch("/send", {
+						// make POST request to /send endpoint
+						const res = await fetch("/send", {
 							method: "POST",
 							body: formData,
 						});
 
-						if (resp.ok) {
-							const res = await resp.text();
-							out.textContent = `upload successful!\nserver response: ${res}`;
+						// get the text from the response
+						const text = await res.text().catch(() => "");
+
+						if (res.ok) {
+							out.textContent = `Upload successful!\nServer response:\n${text}`;
+
+							// clear buffer and render only on successful send
+							staged.length = 0;
+							render();
 						} else {
-							out.textContent = `upload failed: ${res.statusText}`;
+							out.textContent = `Upload failed (${res.status} ${res.statusText || ""}).\n${text}`;
 						}
-					} catch (error) {
-						out.textContent = `an error occured: ${error.message}`;
+					} catch (err) {
+						out.textContent = `An error occurred: ${err?.message || err}`;
 					}
-				}
+				});
+
+				// make the clear button work
+				clear.addEventListener("click", () => {
+					staged.length = 0;
+
+					// render change
+					render();
+				});
+
+				// initial render
+				render();
 			});
 		</script>
 	</body>
