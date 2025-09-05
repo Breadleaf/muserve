@@ -3,6 +3,7 @@ import werkzeug
 
 import tempfile
 import threading
+import os
 
 import DatabaseHandler
 import MusicHandler
@@ -50,7 +51,7 @@ def create_server():
         if not uploaded_files:
             return flask.jsonify({"error": "no files uploaded"}), 400
 
-        def process_file(file, outputs, idx):
+        def ingest_file(file, outputs, idx):
             try:
                 with tempfile.TemporaryDirectory() as tempdir:
                     # reset file pointer just in case not perfect
@@ -58,14 +59,22 @@ def create_server():
 
                     out = []
 
+                    # TODO: defer this action to the user during upload, some songs may break if their
+                    #       title has a file extension for stylistic choice.
+                    # get the filename without extension(s)
+                    real_filename = file.filename
+                    ext = " "
+                    while ext:
+                        (real_filename, ext) = os.path.splitext(real_filename)
+
                     # save to temp dir
-                    safe_name = werkzeug.utils.secure_filename(file.filename or f"upload_{idx}")
+                    safe_name = werkzeug.utils.secure_filename(real_filename or f"upload_{idx}")
                     save_path = f"{tempdir}/{safe_name}"
                     file.save(save_path)
 
-                    out.append(f"processing file: {save_path}")
+                    out.append(f"ingest file: {save_path}, filename: {real_filename}")
 
-                    # process the file
+                    # ingest the file
                     file_buffers, _, err = music_handler.convert_file(save_path, safe_name)
                     if file_buffers:
                         out.append(f"buffers: {file_buffers}")
@@ -91,12 +100,12 @@ def create_server():
                 outputs[idx] = "skipped: invalid file type"
                 continue
 
-            # reset file for processing
+            # reset file for ingest
             file.seek(0)
 
-            # create a thread to process the file
+            # create a thread to ingest the file
             thread = threading.Thread(
-                target=process_file,
+                target=ingest_file,
                 args=(file, outputs, idx,)
             )
             threads.append(thread)
@@ -110,7 +119,7 @@ def create_server():
         for idx, output in enumerate(outputs):
             print(f"thread #{idx}'s output:\n{output}\n", flush=True)
 
-        return flask.jsonify({"message": "files received and processed successfully"})
+        return flask.jsonify({"message": "files received and ingested successfully"})
 
     return server 
 

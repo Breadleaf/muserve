@@ -4,7 +4,12 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width,initial-scale=1" />
 		<title>Muserve File Upload</title>
-<style>
+		<style>
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+}
 #drop {
 	border: 5px dashed black;
 	border-radius: 15px;
@@ -49,7 +54,7 @@ ul {
 	overflow: hidden;
 	text-wrap: nowrap;
 }
-</style>
+		</style>
 	</head>
 	<body>
 		<div style="padding: 2% 2%;">
@@ -79,7 +84,7 @@ ul {
 				const upload = document.getElementById("upload");
 				const clear = document.getElementById("clear");
 				const picker = document.getElementById("picker");
-				
+
 				// array of staged files to send to the server
 				const staged = [];
 
@@ -191,7 +196,7 @@ ul {
 				// make the upload button work
 				upload.addEventListener("click", async () => {
 					out.textContent = "Uploading files...";
-					
+
 					// send files to server
 					const formData = new FormData();
 					staged.forEach((file, index) => {
