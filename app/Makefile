@@ -7,7 +7,6 @@ help:
 	@echo "    setup(venv, selfsign)"
 	@echo "    selfsign"
 	@echo "    venv"
-	@echo "    run"
 	@echo "    clean"
 
 setup: venv selfsign 
@@ -20,9 +19,6 @@ selfsign:
 venv:
 	python3 -m venv venv
 	source venv/bin/activate && pip install -r requirements.txt
-
-run:
-	source venv/bin/activate && python3 main.py --conf example.json
 
 clean:
 	rm server.crt | true

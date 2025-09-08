@@ -1,21 +1,21 @@
 services:
   minio:
-   image: minio/minio
-   environment:
-     MINIO_ROOT_USER: minioadmin
-     MINIO_ROOT_PASSWORD: minioadmin
-   volumes:
-     - minio_data:/storage
-   ports:
-     - "9000:9000" # api port
-     - "9001:9001" # console port
-   command: ["server", "/storage", "--console-address", ":9001"]
-   healthcheck:
-     test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-     interval: 30s
-     timeout: 20s
-     retries: 3
-     start_period: 10s
+    image: minio/minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/storage
+    ports:
+      - "9000:9000" # api port
+      - "9001:9001" # console port
+    command: ["server", "/storage", "--console-address", ":9001"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+      start_period: 10s
 
   postgres:
     image: postgres:17-alpine3.22
@@ -32,8 +32,27 @@ services:
       timeout: 3s
       retries: 20
 
-  # auth:
   # storage:
+
+  auth:
+    build:
+      context: ../auth/
+      dockerfile: Dockerfile
+    #environment:
+    #  POSTGRES_USER: devuser
+    #  POSTGRES_PASSWORD: devpass
+    #  POSTGRES_DB: myapp_dev
+    volumes:
+      - auth_data:/storage
+    ports:
+      - "7000:7000"
+    command: ["gunicorn", "app:server"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
 
   app:
     build:
@@ -43,6 +62,8 @@ services:
       postgres:
         condition: service_healthy
       minio:
+        condition: service_healthy
+      auth:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
@@ -59,3 +80,4 @@ services:
 volumes:
   postgres_data:
   minio_data:
+  auth_data:
