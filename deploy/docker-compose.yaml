@@ -11,7 +11,7 @@ services:
       - "9001:9001" # console port
     command: ["server", "/storage", "--console-address", ":9001"]
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:9000/minio/health/live || exit 1"]
       interval: 30s
       timeout: 20s
       retries: 3
@@ -34,25 +34,49 @@ services:
 
   # storage:
 
+  auth_state:
+    build:
+      context: ../auth_state/
+      dockerfile: Dockerfile
+    volumes:
+      - auth_sock:/sockets
+      - auth_state:/state
+    environment:
+      SOCK_PATH: /sockets/refresh_state.sock
+      STATE_PATH: /state/refresh_state.json
+      REFRESH_TTL_DAYS: "14"
+    command: ["python", "state_server.py"]
+    healthcheck:
+      test: ["CMD-SHELL", "test -S /sockets/refresh_state.sock"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   auth:
     build:
       context: ../auth/
       dockerfile: Dockerfile
-    #environment:
-    #  POSTGRES_USER: devuser
-    #  POSTGRES_PASSWORD: devpass
-    #  POSTGRES_DB: myapp_dev
+    environment:
+      JWT_KEY: "change-me"
+      AUDIENCE: "muserve-api"
+      ISSUER: "https://auth.example.com"
+      SOCK_PATH: /sockets/refresh_state.sock
+      ACTION_TTL_MIN: "10"
     volumes:
-      - auth_data:/storage
+      - auth_sock:/sockets:rw
     ports:
       - "7000:7000"
     command: ["gunicorn", "app:server"]
+    depends_on:
+      auth_state:
+        condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:7000/health"]
-      interval: 10s
+      test: ["CMD-SHELL", "curl", "-fsS", "http://localhost:7000/health || exit 1"]
+      interval: 5s
       timeout: 3s
-      retries: 10
-      start_period: 10s
+      retries: 20
+    restart: unless-stopped
 
   app:
     build:
@@ -80,4 +104,5 @@ services:
 volumes:
   postgres_data:
   minio_data:
-  auth_data:
+  auth_sock:
+  auth_state:
