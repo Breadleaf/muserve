@@ -37,7 +37,7 @@ services:
 
   app:
     build:
-      context: .
+      context: ../app/
       dockerfile: Dockerfile
     depends_on:
       postgres:
@@ -49,8 +49,8 @@ services:
       # LOCAL_MODE: " " # TODO: remove when testing with database enabled
       LOCAL_MODE: ""
     working_dir: /app
-    volumes:
-      - ./:/app:rw
+    #volumes:
+    #  - ./:/app:rw
     command: ["gunicorn", "app:server"]
     # command: ["python", "main.py"]
     ports:
