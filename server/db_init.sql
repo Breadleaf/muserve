@@ -17,6 +17,8 @@ CREATE TABLE songs (
 	title VARCHAR(255) NOT NULL,
 	artist_id INT NOT NULL,
 	uploaded_by INT NOT NULL,
+	sha256_hash VARCHAR(255) NOT NULL,
+	db_path VARCHAR(255) NOT NULL,
 	FOREIGN KEY (artist_id) REFERENCES artists(id),
 	FOREIGN KEY (uploaded_by) REFERENCES users(id),
 	CONSTRAINT fk_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
@@ -70,9 +72,14 @@ CREATE TABLE playlist_shares (
 
 CREATE INDEX idx_songs_artist_id ON songs (artist_id);
 CREATE INDEX idx_songs_uploaded_by ON songs (uploaded_by);
+CREATE INDEX idx_songs_sha256_hash ON songs (sha256_hash);
+
 CREATE INDEX idx_albums_artist_id ON albums (artist_id);
+
 CREATE INDEX idx_playlists_owner_id ON playlists (owner_id);
 CREATE INDEX idx_playlists_visibility ON playlists (visibility);
+
 CREATE INDEX idx_playlists_songs_song_id ON playlist_songs (song_id);
 CREATE INDEX idx_playlist_songs_added_by ON playlist_songs (added_by);
+
 CREATE INDEX idx_playlist_shares_user_id ON playlist_shares (user_id);

@@ -36,10 +36,13 @@ entity songs {
 	title : varchar <<NOT NULL>>
 	artist_id : integer <<FK artists.id, NOT NULL>> ' canonical artist
 	uploaded_by : integer <<FK users.id, NOT NULL>>
+	db_path : varchar <<NOT NULL>>
+	sha256_hash : varchar <<NOT NULL>> ' song data, not metadata
 	--
 	{index} (artist_id)
 	{index} (uploaded_by)
 	{index} (title, artist_id)
+	{index} (sha256_hash)
 }
 
 entity albums {
