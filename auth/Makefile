@@ -17,3 +17,4 @@ venv:
 clean:
 	rm -rf venv | true
 	rm -rf __pycache__ | true
+	rm -rf cookies.txt | true
