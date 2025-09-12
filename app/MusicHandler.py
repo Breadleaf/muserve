@@ -15,7 +15,7 @@ class MusicHandler:
         self.magic = magic.Magic(mime=True)
         self.allowed = allowed # mimetypes
 
-    def validate_file(self, file_content: str) -> bool:
+    def validate_file(self, file_content: bytes) -> bool:
         """
         Check if a file's real mimetype is in the set of allowed mimetypes
 
