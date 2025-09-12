@@ -9,4 +9,3 @@ RUN apk add --no-cache libmagic ffmpeg libvorbis dash
 RUN pip install --no-cache-dir -r requirements.txt
 
 CMD ["gunicorn", "app:server"]
-# CMD ["python", "main.py"]
