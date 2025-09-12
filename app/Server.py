@@ -62,10 +62,14 @@ def create_server():
                     # TODO: defer this action to the user during upload, some songs may break if their
                     #       title has a file extension for stylistic choice.
                     # get the filename without extension(s)
+                    """
                     real_filename = file.filename
                     ext = " "
                     while ext:
                         (real_filename, ext) = os.path.splitext(real_filename)
+                    """
+                    # if a user has something like a.b.c assume a.b is a stylistic choice from the artist
+                    (real_filename, _) = os.path.splitext(file.filename)
 
                     # save to temp dir
                     safe_name = werkzeug.utils.secure_filename(real_filename or f"upload_{idx}")
@@ -79,7 +83,7 @@ def create_server():
                     if file_buffers:
                         out.append(f"buffers: {file_buffers}")
                     else:
-                        out.append("error converting files: {err}")
+                        out.append(f"error converting files: {err}")
 
                     outputs[idx] = "\n".join(out)
             except Exception as e:
@@ -89,7 +93,7 @@ def create_server():
         outputs = ["" for _ in uploaded_files]
 
         for idx, file in enumerate(uploaded_files):
-            if not file or file.filename:
+            if (not file) or (not file.filename):
                 outputs[idx] = "skipped: empty filename"
 
             # check if file is valid
