@@ -11,3 +11,7 @@ docker compose exec <service> # interactive shell of process
 
 Note: if you are not in the `deploy/` dir, you should use the
 `-f "path/to/docker-compose.yaml"` in the commands
+
+## Database Schema
+
+![database schema](./database.png)

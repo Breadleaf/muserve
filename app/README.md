@@ -1,5 +1,1 @@
-# Muserve Server
-
-## Database Schema
-
-![database schema](./database.png)
+# Muserve App

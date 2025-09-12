@@ -1,3 +1,5 @@
+# Muserve Auth Server
+
 ## Usage
 
 ### /health
