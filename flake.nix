@@ -1,5 +1,5 @@
 {
-	description = "muserve server";
+	description = "muserve";
 
 	inputs = {
 		nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
