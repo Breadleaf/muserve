@@ -1,21 +1,66 @@
-## usage
+## Usage
 
-login: capture HttpOnly refresh cookie and action token from JSON
-```
-ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/login -c cookies.txt | jq -r .action_token)
-```
+### /health
 
-call protected endpoint using action token
+`/health` is the endpoint anyone can call to see if the auth server is online
+
 ```
-curl -s http://localhost:7000/me -H "Authorization: Bearer $ACTION_TOKEN"
+curl -f http://localhost:7000/health
 ```
 
-when the action token expires (or when you want to rotate)
+### /register
+
+`/register` is the endpoint to register a new user in the database
+
 ```
-ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/refresh -b cookies.txt -c cookies.txt | jq -r .action_token)
+curl -i -X POST http://localhost:7000/register \
+    -H 'Content-Type: application/json' \
+    -d '{"name": "test", "email": "test@example.com", "password": "test1234"}'
 ```
 
-use the new action token
+### /login
+
+`/login` is the endpoint which a user can receive a new action and refresh token
+
 ```
-curl -s http://localhost:7000/me -H "Authorization: Bearer $ACTION_TOKEN"
+ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/login \
+    -H 'Content-Type: application/json' \
+    -d '{"email": "test@example.com", "password": "test1234"}' \
+    -c rt.txt | jq -r .action_token)
+```
+
+### /refresh
+
+`/refresh` is the endpoint a user can rotate their refresh token
+
+```
+ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/refresh \
+    -b rt.txt -c rt.txt | jq -r .action_token)
+```
+
+### /logout
+
+`/logout` is the endpoint the user can revoke their current refresh token, this
+is also known as a device logout
+
+```
+curl -i -b rt.txt -c /dev/null -X POST http://localhost:7000/logout
+```
+
+### /logout_all
+
+`/logout_all` is the endpoint where the user can revoke their whole family, this
+is also known as signout of all devices
+
+```
+curl -i -b rt.txt -H "Authorization: Bearer $ACTION_TOKEN" \
+    -X POST http://localhost:7000/logout_all
+```
+
+### /me
+
+`/me` is the endpoint which a user can use to find their user id
+
+```
+curl -s -H "Authorization: Bearer $ACTION_TOKEN" http://localhost:7000/me
 ```

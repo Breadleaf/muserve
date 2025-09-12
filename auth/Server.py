@@ -12,7 +12,7 @@ import argon2 as a2
 import argon2.low_level as a2ll
 
 ISSUER = os.getenv("ISSUER", "http://localhost:7000")
-AUDIENCE = os.getenv("AUDIENCE", "muserve-api") # use for both action and refresh
+AUDIENCE = os.getenv("AUDIENCE", "muserve-api") # use for both action & refresh
 JWT_KEY = os.getenv("JWT_KEY", "dev-secret-change-me")
 JWT_ALG = os.getenv("JWT_ALG", "HS256")
 ACTION_TTL_MIN = int(os.getenv("ACTION_TTL_MIN", "10"))
@@ -189,7 +189,11 @@ def create_server():
 
         cur = DATABASE.cursor()
         cur.execute(
-            "SELECT id, password_hash FROM users WHERE LOWER(email)=LOWER(%s) LIMIT 1;",
+            """
+            SELECT id, password_hash FROM users
+            WHERE LOWER(email)=LOWER(%s)
+            LIMIT 1;
+            """,
             (email,)
         )
         row = cur.fetchone()
@@ -252,7 +256,11 @@ def create_server():
         cur = DATABASE.cursor()
         try:
             cur.execute(
-                "INSERT INTO users (name, email, is_admin, password_hash) VALUES (%s, %s, FALSE, %s) RETURNING id;",
+                """
+                INSERT INTO users (name, email, is_admin, password_hash)
+                VALUES (%s, %s, FALSE, %s)
+                RETURNING id;
+                """,
                 (name, email, hashed_password),
             )
             row = cur.fetchone()
@@ -358,7 +366,11 @@ def create_server():
             "typ": "refresh",
             "exp": refresh_expiry,
         }
-        new_refresh_jwt = jwt.encode(new_refresh_payload, JWT_KEY, algorithm=JWT_ALG)
+        new_refresh_jwt = jwt.encode(
+            new_refresh_payload,
+            JWT_KEY,
+            algorithm=JWT_ALG
+        )
 
         resp = flask.make_response({
             "action_token": mint_action_token(int(payload["sub"])),
