@@ -4,24 +4,15 @@ import os
 import sys
 import urllib.parse as up
 
+DATABASE_URL = os.environ.get("DATABASE_URL", None)
+
 class DatabaseHandler:
-    # def __init__(self, db_url):
     def __init__(self):
-        # TODO: find less hacky workaround
-        # NOTE: if LOCAL_MODE!="" disable database
-        # disable connection to psql
-        self.local_mode = os.environ.get("LOCAL_MODE", "") != ""
-
-        # NOTE: if LOCAL_MODE!="" disable database
-        if self.local_mode:
-            return
-
-        db_url = os.environ.get("DATABASE_URL", None)
-        if not db_url:
+        if not DATABASE_URL:
             print(f"envvar DATABASE_URL doesn't exist", file=sys.stderr)
             sys.exit(1)
 
-        parsed_url = up.urlparse(db_url)
+        parsed_url = up.urlparse(DATABASE_URL)
 
         try:
             self.con = psycopg2.connect(
@@ -40,10 +31,6 @@ class DatabaseHandler:
             sys.exit(1)
 
     def fetch(self, query, values=()):
-        # NOTE: if LOCAL_MODE!="" disable database
-        if self.local_mode:
-            return (True, f"local / query: {str(query)}, values: {str(values)}")
-
         try:
             cur = self.con.cursor()
             cur.execute(query, values)
@@ -57,11 +44,6 @@ class DatabaseHandler:
             return (False, f"db error from fetch(): {e}")
 
     def insert(self, query, values=()):
-        # NOTE: if LOCAL_MODE!="" disable database
-        if self.local_mode:
-            print(f"query: {str(query)}, values: {str(values)}")
-            return None
-
         try:
             cur = self.con.cursor()
             cur.execute(query, values)
