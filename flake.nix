@@ -23,6 +23,7 @@
 						mutagen
 						pyjwt
 						argon2-cffi
+						requests
 					];
 				};
 			}

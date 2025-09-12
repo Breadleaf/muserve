@@ -1,12 +1,39 @@
 import flask
-import werkzeug
+import requests
 
+import functools
 import tempfile
 import threading
 import os
 
 import DatabaseHandler
 import MusicHandler
+
+AUTH_BASE_URL = os.getenv("AUTH_BASE_URL", "http://auth:7000")
+
+def require_action(handler):
+    @functools.wraps(handler)
+    def wrapper(*args, **kwargs):
+        auth_header = flask.request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return {"error": "missing bearer token"}, 401
+
+        try:
+            req = requests.post(
+                f"{AUTH_BASE_URL}/introspect",
+                headers={"Authorization": auth_header},
+                timeout=3,
+            )
+        except requests.RequestException as e:
+            return {"error": "auth service unavailable", "detail": str(e)}, 503
+
+        if req.status_code != 200 or not req.json().get("activate"):
+            return {"error": "invalid token"}, 401
+
+        flask.g.user_id = int(req.json()["user_id"])
+        return handler(*args, **kwargs)
+
+    return wrapper
 
 def create_server():
     server = flask.Flask(__name__)
@@ -19,6 +46,7 @@ def create_server():
         return flask.render_template("upload.html")
 
     @server.route("/send", methods=["POST"])
+    @require_action
     def send():
         uploaded_files = list(flask.request.files.values())
 
@@ -94,10 +122,15 @@ def create_server():
         for thread in threads:
             thread.join()
 
+        uploader = flask.g.user_id
+
         for idx, output in enumerate(outputs):
             print(f"thread #{idx}'s output:\n{output}\n", flush=True)
 
-        return flask.jsonify({"message": "files received and ingested successfully"})
+        return flask.jsonify({
+            "message": "files received and ingested successfully",
+            "uploaded_by": uploader,
+        })
 
     return server 
 

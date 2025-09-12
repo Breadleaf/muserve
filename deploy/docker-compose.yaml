@@ -64,6 +64,7 @@ services:
       SOCK_PATH: /sockets/refresh_state.sock
       ACTION_TTL_MIN: "10"
       DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
+      JWT_ALG: "HS256"
     volumes:
       - auth_sock:/sockets:rw
     ports:
@@ -94,6 +95,7 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
+      AUTH_BASE_URL: http://auth:7000
     working_dir: /app
     #volumes:
     #  - ./:/app:rw

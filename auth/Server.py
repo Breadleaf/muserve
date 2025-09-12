@@ -1,5 +1,6 @@
 import os
 import flask
+import flask_cors
 import multiprocessing.managers as mm
 import datetime
 import jwt
@@ -148,6 +149,11 @@ def require_action(handler):
 
 def create_server():
     server = flask.Flask(__name__)
+    flask_cors.CORS(
+        server,
+        resources={r"/*": {"origins": ["http://localhost:8000"]}},
+        supports_credentials=True,
+    )
 
     # this is safe because docker compose will wait for auth_state healthy
     global STORE
@@ -178,6 +184,31 @@ def create_server():
     def health():
         print("/health: ping~!", flush=True)
         return "Ok"
+
+    @server.post("/introspect")
+    def introspect():
+        auth_header = flask.request.headers.get("Authorization", "")
+        token = None
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1].strip()
+        else:
+            body = flask.request.get_json(silent=True) or {}
+            token = body.get("token")
+
+        if not token:
+            return {"active": False, "error": "missing token"}, 400
+
+        try:
+            payload = verify_action_token(token)
+            return {
+                "active": True,
+                "sub": payload["sub"],
+                "user_id": int(payload["sub"]),
+                "exp": payload["exp"],
+                "jti": payload["jti"],
+            }
+        except jwt.PyJWTError as e:
+            return {"active": False, "error": str(e)}, 401
 
     @server.post("/login")
     def login():
