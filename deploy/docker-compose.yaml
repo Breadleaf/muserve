@@ -63,6 +63,7 @@ services:
       ISSUER: "https://auth.example.com"
       SOCK_PATH: /sockets/refresh_state.sock
       ACTION_TTL_MIN: "10"
+      DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
     volumes:
       - auth_sock:/sockets:rw
     ports:
@@ -70,6 +71,8 @@ services:
     command: ["gunicorn", "app:server"]
     depends_on:
       auth_state:
+        condition: service_healthy
+      postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7000/health"]

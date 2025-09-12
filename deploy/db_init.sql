@@ -2,23 +2,24 @@ CREATE TYPE playlist_visibility AS ENUM ('private', 'public', 'shared');
 
 CREATE TABLE users (
 	id SERIAL PRIMARY KEY,
-	name VARCHAR(255),
-	email VARCHAR(255) UNIQUE NOT NULL,
+	name TEXT,
+	email TEXT UNIQUE NOT NULL,
+	password_hash TEXT,
 	is_admin BOOLEAN DEFAULT FALSE
 );
 
 CREATE TABLE artists (
 	id SERIAL PRIMARY KEY,
-	name VARCHAR(255) UNIQUE NOT NULL
+	name TEXT UNIQUE NOT NULL
 );
 
 CREATE TABLE songs (
 	id SERIAL PRIMARY KEY,
-	title VARCHAR(255) NOT NULL,
+	title TEXT NOT NULL,
 	artist_id INT NOT NULL,
 	uploaded_by INT NOT NULL,
-	sha256_hash VARCHAR(255) NOT NULL,
-	db_path VARCHAR(255) NOT NULL,
+	sha256_hash TEXT NOT NULL,
+	db_path TEXT NOT NULL,
 	FOREIGN KEY (artist_id) REFERENCES artists(id),
 	FOREIGN KEY (uploaded_by) REFERENCES users(id),
 	CONSTRAINT fk_artist FOREIGN KEY (artist_id) REFERENCES artists(id) ON DELETE CASCADE,
@@ -27,7 +28,7 @@ CREATE TABLE songs (
 
 CREATE TABLE albums (
 	id SERIAL PRIMARY KEY,
-	title VARCHAR(255) NOT NULL,
+	title TEXT NOT NULL,
 	artist_id INT NOT NULL,
 	FOREIGN KEY (artist_id) REFERENCES artists(id),
 	CONSTRAINT unique_album UNIQUE (artist_id, title)
@@ -43,7 +44,7 @@ CREATE TABLE album_songs (
 
 CREATE TABLE playlists (
 	id SERIAL PRIMARY KEY,
-	title VARCHAR(255) NOT NULL,
+	title TEXT NOT NULL,
 	owner_id INT NOT NULL,
 	visibility playlist_visibility DEFAULT 'private',
 	FOREIGN KEY (owner_id) REFERENCES users(id),
@@ -83,3 +84,5 @@ CREATE INDEX idx_playlists_songs_song_id ON playlist_songs (song_id);
 CREATE INDEX idx_playlist_songs_added_by ON playlist_songs (added_by);
 
 CREATE INDEX idx_playlist_shares_user_id ON playlist_shares (user_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_email_lower_uidx ON users (LOWER(email));

@@ -22,6 +22,7 @@
 						psycopg2-binary
 						mutagen
 						pyjwt
+						argon2-cffi
 					];
 				};
 			}
