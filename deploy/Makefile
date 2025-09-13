@@ -17,4 +17,4 @@ selfsign:
 	openssl x509 -req -in ./certs/server.csr -signkey ./certs/server.key -out ./certs/server.crt
 
 clean:
-	rm -rf ./certs | true
+	rm -rf ./certs/ | true
