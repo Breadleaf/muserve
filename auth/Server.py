@@ -1,6 +1,6 @@
 import os
 import flask
-import flask_cors
+#import flask_cors
 import multiprocessing.managers as mm
 import datetime
 import jwt
@@ -147,13 +147,31 @@ def require_action(handler):
 # flask app
 #
 
+"""
+ALLOWED_ORIGINS = {
+    "https://localhost:8000",
+    "https://127.0.0.1:8000",
+}
+"""
+
 def create_server():
     server = flask.Flask(__name__)
+    """
     flask_cors.CORS(
         server,
-        resources={r"/*": {"origins": ["http://localhost:8000"]}},
+        resources={
+            r"/*": {
+                "origins": list(ALLOWED_ORIGINS),
+            },
+        },
         supports_credentials=True,
+        allow_headers=["Content-Type", "Authorization"],
+        methods=["GET", "POST", "OPTIONS"],
+        expose_headers=[],
+        max_age=600,
     )
+    """
+    auth_bp = flask.Blueprint("auth", __name__)
 
     # this is safe because docker compose will wait for auth_state healthy
     global STORE
@@ -180,12 +198,12 @@ def create_server():
     db_connect()
 
     # simple health check for docker
-    @server.route("/health")
+    @auth_bp.route("/health")
     def health():
         print("/health: ping~!", flush=True)
         return "Ok"
 
-    @server.post("/introspect")
+    @auth_bp.post("/introspect")
     def introspect():
         auth_header = flask.request.headers.get("Authorization", "")
         token = None
@@ -210,7 +228,7 @@ def create_server():
         except jwt.PyJWTError as e:
             return {"active": False, "error": str(e)}, 401
 
-    @server.post("/login")
+    @auth_bp.post("/login")
     def login():
         body = flask.request.get_json(silent=True) or {}
         email = (body.get("email") or "").strip().lower()
@@ -263,13 +281,13 @@ def create_server():
             refresh_jwt,
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="None",
             path="/refresh",
         )
 
         return resp
 
-    @server.post("/register")
+    @auth_bp.post("/register")
     def register():
         body = flask.request.get_json(silent=True) or {}
         name = (body.get("name") or "").strip()
@@ -304,7 +322,7 @@ def create_server():
 
         return {"id": user_id, "email": email}, 201
 
-    @server.post("/logout")
+    @auth_bp.post("/logout")
     def logout():
         # revoke current refresh token (device sign-out)
         refresh_cookie = flask.request.cookies.get(REFRESH_COOKIE) or ""
@@ -324,12 +342,12 @@ def create_server():
             path="/refresh",
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="None",
             max_age=0,
         )
         return resp
 
-    @server.post("/logout_all")
+    @auth_bp.post("/logout_all")
     def logout_all():
         # logout whole family (all devices)
         refresh_cookie = flask.request.cookies.get(REFRESH_COOKIE) or ""
@@ -348,12 +366,12 @@ def create_server():
             path="/refresh",
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="None",
             max_age=0,
         )
         return resp
 
-    @server.post("/refresh")
+    @auth_bp.post("/refresh")
     def refresh():
         """
         rotate the refresh token and return a new action token
@@ -412,17 +430,30 @@ def create_server():
             new_refresh_jwt,
             httponly=True,
             secure=True,
-            samesite="Strict",
+            samesite="None",
             path="/refresh",
         )
 
         return resp
 
     # example of a protected endpoint using the action tokens
-    @server.get("/me")
+    @auth_bp.get("/me")
     @require_action
     def me():
         return {"user_id": flask.g.user_id}
+
+    """
+    @server.after_request
+    def _cors_always(resp):
+        origin = flask.request.headers.get("Origin")
+        if origin in ALLOWED_ORIGINS:
+            resp.headers["Access-Control-Allow-Origin"] = origin
+            resp.headers["Vary"] = "Origin"
+            resp.headers["Access-Control-Allow-Credentials"] = "true"
+        return resp
+    """
+
+    server.register_blueprint(auth_bp, url_prefix="/auth")
 
     return server
 
@@ -431,5 +462,6 @@ if __name__ == "__main__":
     server.run(
         host="0.0.0.0",
         port=7000,
+        #ssl_context=("server.crt", "server.key"),
         use_reloader=False
     )

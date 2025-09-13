@@ -1,5 +1,6 @@
 import flask
 import requests
+import werkzeug.utils as wu
 
 import functools
 import tempfile
@@ -11,42 +12,101 @@ import MusicHandler
 
 AUTH_BASE_URL = os.getenv("AUTH_BASE_URL", "http://auth:7000")
 
-def require_action(handler):
-    @functools.wraps(handler)
-    def wrapper(*args, **kwargs):
-        auth_header = flask.request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            return {"error": "missing bearer token"}, 401
-
-        try:
-            req = requests.post(
-                f"{AUTH_BASE_URL}/introspect",
-                headers={"Authorization": auth_header},
-                timeout=3,
-            )
-        except requests.RequestException as e:
-            return {"error": "auth service unavailable", "detail": str(e)}, 503
-
-        if req.status_code != 200 or not req.json().get("activate"):
-            return {"error": "invalid token"}, 401
-
-        flask.g.user_id = int(req.json()["user_id"])
-        return handler(*args, **kwargs)
-
-    return wrapper
-
 def create_server():
     server = flask.Flask(__name__)
+    server.secret_key = os.getenv("APP_SECRET_KEY", "dev-change-me")
 
-    db_handler = DatabaseHandler.DatabaseHandler()
+    #db_handler = DatabaseHandler.DatabaseHandler()
     music_handler = MusicHandler.MusicHandler(["audio/mpeg"])
 
+    #
+    # helpers
+    #
+
+    def require_login(handler):
+        @functools.wraps(handler)
+        def wrapper(*args, **kwargs):
+            token = flask.session.get("action_token")
+            if not token:
+                # no token in session, login
+                return flask.redirect("/login")
+
+            # ask auth to validate token
+            try:
+                req = requests.post(
+                    f"{AUTH_BASE_URL}/introspect",
+                    json={"token": token},
+                    timeout=3,
+                )
+            except requests.RequestException as e:
+                return flask.make_response({
+                    "error": "auth service unavailable",
+                    "detail": str(e)
+                }, 503)
+
+            data = {}
+            try:
+                data = req.json()
+            except Exception:
+                pass
+
+            if req.status_code != 200 or not data.get("active"):
+                # token invalid/expired, clear local session and ask user to login
+                flask.session.pop("action_token", None)
+                return flask.redirect("/login")
+
+            flask.g.user_id = int(data["user_id"])
+            return handler(*args, **kwargs)
+
+        return wrapper
+
+    #
+    # pages
+    #
+
+    @server.route("/login")
+    def login():
+        return flask.render_template("login.html")
+
     @server.route("/upload")
+    @require_login
     def upload():
         return flask.render_template("upload.html")
 
+    @server.post("/logout")
+    def logout():
+        flask.session.pop("action_token", None)
+        return {"ok": True}
+
+    @server.post("/session")
+    def set_session_token():
+        """
+        accepts json: {"action_token": "..."}
+        stores it in flask session and redirects to /upload
+        """
+        body = flask.request.get_json(silent=True) or {}
+        token = (body.get("action_token") or "").strip()
+        if not token:
+            return {"error": "missing action_token"}, 400
+
+        # verify once before storing
+        req = requests.post(
+            f"{AUTH_BASE_URL}/introspect",
+            json={"token": token},
+            timeout=3,
+        )
+        if not (req.status_code == 200 and req.json().get("active")):
+            return {"error": "invalid action_token"}, 401
+
+        flask.session["action_token"] = token
+        return {"ok": True, "redirect": "/upload"}
+
+    #
+    # API
+    #
+
     @server.route("/send", methods=["POST"])
-    @require_action
+    @require_login
     def send():
         uploaded_files = list(flask.request.files.values())
 
@@ -74,7 +134,7 @@ def create_server():
                     (real_filename, _) = os.path.splitext(file.filename)
 
                     # save to temp dir
-                    safe_name = werkzeug.utils.secure_filename(real_filename or f"upload_{idx}")
+                    safe_name = wu.secure_filename(real_filename or f"upload_{idx}")
                     save_path = f"{tempdir}/{safe_name}"
                     file.save(save_path)
 
@@ -139,6 +199,6 @@ if __name__ == "__main__":
     server.run(
         host="0.0.0.0",
         port=8000,
-        ssl_context=("server.crt", "server.key"),
+        #ssl_context=("server.crt", "server.key"),
         use_reloader=False
     )

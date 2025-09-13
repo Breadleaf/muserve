@@ -7,7 +7,7 @@
 `/health` is the endpoint anyone can call to see if the auth server is online
 
 ```
-curl -f http://localhost:7000/health
+curl -f http://localhost:7000/auth/health
 ```
 
 ### /register
@@ -15,7 +15,7 @@ curl -f http://localhost:7000/health
 `/register` is the endpoint to register a new user in the database
 
 ```
-curl -i -X POST http://localhost:7000/register \
+curl -i -X POST http://localhost:7000/auth/register \
     -H 'Content-Type: application/json' \
     -d '{"name": "test", "email": "test@example.com", "password": "test1234"}'
 ```
@@ -25,7 +25,7 @@ curl -i -X POST http://localhost:7000/register \
 `/login` is the endpoint which a user can receive a new action and refresh token
 
 ```
-ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/login \
+ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/auth/login \
     -H 'Content-Type: application/json' \
     -d '{"email": "test@example.com", "password": "test1234"}' \
     -c rt.txt | jq -r .action_token)
@@ -36,7 +36,7 @@ ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/login \
 `/refresh` is the endpoint a user can rotate their refresh token
 
 ```
-ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/refresh \
+ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/auth/refresh \
     -b rt.txt -c rt.txt | jq -r .action_token)
 ```
 
@@ -46,7 +46,7 @@ ACTION_TOKEN=$(curl -s -X POST http://localhost:7000/refresh \
 is also known as a device logout
 
 ```
-curl -i -b rt.txt -c /dev/null -X POST http://localhost:7000/logout
+curl -i -b rt.txt -c /dev/null -X POST http://localhost:7000/auth/logout
 ```
 
 ### /logout_all
@@ -56,7 +56,7 @@ is also known as signout of all devices
 
 ```
 curl -i -b rt.txt -H "Authorization: Bearer $ACTION_TOKEN" \
-    -X POST http://localhost:7000/logout_all
+    -X POST http://localhost:7000/auth/logout_all
 ```
 
 ### /me
@@ -64,5 +64,5 @@ curl -i -b rt.txt -H "Authorization: Bearer $ACTION_TOKEN" \
 `/me` is the endpoint which a user can use to find their user id
 
 ```
-curl -s -H "Authorization: Bearer $ACTION_TOKEN" http://localhost:7000/me
+curl -s -H "Authorization: Bearer $ACTION_TOKEN" http://localhost:7000/auth/me
 ```
