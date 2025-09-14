@@ -17,6 +17,46 @@
 		</div>
 
 		<script>
+			(async () => {
+				try {
+					// try to use cached browser refresh to
+					// login to the service
+
+					// hit the proxied refresh endpoint,
+					// have the browser attach the HttpOnly
+					// cookie
+					const r = await fetch("/auth/refresh", {
+						method: "POST",
+						credentials: "include",
+					});
+					if (r.ok) {
+						const data = await r.json();
+						// store the action token in the
+						// Flask session with /session
+						const s = await fetch("/session", {
+							method: "POST",
+							headers: {
+								"Content-Type": "application/json",
+							},
+							credentials: "include",
+							body: JSON.stringify({
+								action_token: data.action_token,
+							}),
+						});
+						if (s.ok) {
+							location.assign("/upload");
+							return;
+						}
+					}
+
+				} catch (e) {
+					// ignore; show normal login form
+				}
+				// if we get here refresh either failed or
+				// cookie; show normal login form
+			})();
+		</script>
+		<script>
 			async function login(email, password) {
 				const res = await fetch(`/auth/login`, {
 					method: "POST",
