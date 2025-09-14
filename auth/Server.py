@@ -21,9 +21,6 @@ SOCK_PATH = os.getenv("SOCK_PATH", "/sockets/refresh_state.sock")
 AUTHKEY = os.getenv("AUTHKEY", "change-me").encode()
 REFRESH_COOKIE = os.getenv("REFRESH_COOKIE", "rt")
 DATABASE_URL = os.getenv("DATABASE_URL", "")
-BOOTSTRAP_ADMIN_NAME = os.getenv("BOOTSTRAP_ADMIN_NAME")
-BOOTSTRAP_ADMIN_EMAIL = (os.getenv("BOOTSTRAP_ADMIN_EMAIL") or "").strip().lower()
-BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD")
 
 #
 # argon2 password hasher
@@ -149,6 +146,43 @@ def require_action(handler):
 
     return wrapper
 
+def require_admin(handler):
+    @functools.wraps(handler)
+    def wrapper(*args, **kwargs):
+        auth_header = flask.request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            return {"error": "missing bearer token"}, 401
+
+        token = auth_header.split(" ", 1)[1].strip()
+        try:
+            payload = verify_action_token(token)
+
+        except jwt.PyJWTError as err:
+            return {"error": "invalid action token", "detail": str(err)}, 401
+
+        user_id = int(payload["sub"])
+
+        cur = DATABASE.cursor()
+        cur.execute(
+            """
+            SELECT is_admin FROM users WHERE id=%s LIMIT 1;
+            """,
+            (user_id,),
+        )
+        row = cur.fetchone()
+        if not row or not row[0]:
+            return {"error": "unknown user"}, 401
+        is_admin = bool(row[0])
+        if not is_admin:
+            return {"error": "forbidden: admin only"}, 403
+
+        flask.g.user_id = user_id
+        flask.g.is_admin = True
+        
+        return handler(*args, **kwargs)
+
+    return wrapper
+
 #
 # flask app
 #
@@ -201,45 +235,7 @@ def create_server():
 
         DATABASE.autocommit = True
 
-    def _maybe_bootstrap_admin():
-        if not (BOOTSTRAP_ADMIN_NAME and BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD):
-            return
-
-        cur = DATABASE.cursor()
-
-        # if an admin already exists, do nothing
-        cur.execute("SELECT COUNT(*) FROM users WHERE is_admin = TRUE;")
-        row = cur.fetchone()
-        if not row or not row[0]:
-            print("[bootstrap] error: could not fetch users", flush=True)
-            return
-        if row[0] > 0:
-            print("[bootstrap] admin exists; skipping", flush=True)
-            return
-
-        try:
-            hashed = PASSWORD_HASHER.hash(BOOTSTRAP_ADMIN_PASSWORD)
-            cur.execute(
-                """
-                INSERT INTO users (name, email, is_admin, password_hash)
-                VALUES (%s, %s, TRUE, %s),
-                ON CONFLICT (email) DO UPDATE
-                    SET is_admin = EXCLUDED.is_admin, password_hash = EXCLUDED.password_hash
-                RETURNING id;
-                """,
-                (BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_EMAIL, hashed),
-            )
-            row = cur.fetchone()
-            if not row or not row[0]:
-                print("[bootstrap] error: could not fetch id after insert", flush=True)
-                return
-            uid = row[0]
-            print(f"[bootstrap] created/updated admin {BOOTSTRAP_ADMIN_EMAIL} (id={uid})", flush=True)
-        except Exception as e:
-            print(f"[bootstrap] error: {e}", flush=True)
-
     db_connect()
-    _maybe_bootstrap_admin()
 
     # simple health check for docker
     @auth_bp.route("/health")
@@ -333,6 +329,7 @@ def create_server():
         return resp
 
     @auth_bp.post("/register")
+    @require_admin
     def register():
         body = flask.request.get_json(silent=True) or {}
         name = (body.get("name") or "").strip()

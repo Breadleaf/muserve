@@ -47,7 +47,20 @@ services:
       - ./certs:/etc/nginx/certs:ro
     restart: unless-stopped
 
-  # storage:
+  bootstrap_admin:
+    build:
+      context: ../bootstrap_admin/
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
+      BOOTSTRAP_ADMIN_NAME: "admin"
+      BOOTSTRAP_ADMIN_EMAIL: "admin"
+      BOOTSTRAP_ADMIN_PASSWORD: "admin"
+    command: ["python", "bootstrap_admin.py"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
   auth_state:
     build:
@@ -80,9 +93,6 @@ services:
       ACTION_TTL_MIN: "10"
       DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
       JWT_ALG: "HS256"
-      BOOTSTRAP_ADMIN_NAME: "admin"
-      BOOTSTRAP_ADMIN_EMAIL: "admin"
-      BOOTSTRAP_ADMIN_PASSWORD: "admin"
     volumes:
       - auth_sock:/sockets:rw
     #ports:
@@ -93,6 +103,8 @@ services:
         condition: service_healthy
       postgres:
         condition: service_healthy
+      bootstrap_admin:
+        condition: service_completed_successfully
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7000/auth/health"]
       interval: 5s

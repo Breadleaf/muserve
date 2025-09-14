@@ -66,3 +66,20 @@ curl -i -b rt.txt -H "Authorization: Bearer $ACTION_TOKEN" \
 ```
 curl -s -H "Authorization: Bearer $ACTION_TOKEN" http://localhost:7000/auth/me
 ```
+
+### TODO update sections
+
+```
+ACTION_TOKEN=$(curl -k -s -c rt.txt \
+-H 'Content-Type: application/json' \
+-d '{"email": "admin", "password": "admin"}' \
+-X POST https://localhost:8443/auth/login \
+| jq -r .action_token)
+```
+
+```
+$ curl -k -i -X POST https://localhost:8443/auth/register \
+-H 'Content-Type: application/json' \
+-H "Authorization: Bearer $ACTION_TOKEN" \
+-d '{"name": "test", "email": "test@gmail.com", "password": "1234"}'
+```
