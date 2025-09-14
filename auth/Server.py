@@ -77,6 +77,9 @@ DATABASE: pg.extensions.connection
 def _now_utc():
     return datetime.datetime.now(datetime.timezone.utc)
 
+def _cookie_max_age(exp_ts):
+    return max(0, exp_ts - int(_now_utc().timestamp()))
+
 def mint_action_token(user_id):
     issued_at = _now_utc()
     expires_at = issued_at + datetime.timedelta(minutes=ACTION_TTL_MIN)
@@ -282,7 +285,8 @@ def create_server():
             httponly=True,
             secure=True,
             samesite="None",
-            path="/refresh",
+            path="/refresh", # nginx turns this into /auth/refresh
+            max_age=_cookie_max_age(refresh_expiry),
         )
 
         return resp
@@ -431,7 +435,8 @@ def create_server():
             httponly=True,
             secure=True,
             samesite="None",
-            path="/refresh",
+            path="/refresh", # nginx turns this into /auth/refresh
+            max_age=_cookie_max_age(refresh_expiry),
         )
 
         return resp
