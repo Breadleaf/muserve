@@ -21,6 +21,9 @@ SOCK_PATH = os.getenv("SOCK_PATH", "/sockets/refresh_state.sock")
 AUTHKEY = os.getenv("AUTHKEY", "change-me").encode()
 REFRESH_COOKIE = os.getenv("REFRESH_COOKIE", "rt")
 DATABASE_URL = os.getenv("DATABASE_URL", "")
+BOOTSTRAP_ADMIN_NAME = os.getenv("BOOTSTRAP_ADMIN_NAME")
+BOOTSTRAP_ADMIN_EMAIL = (os.getenv("BOOTSTRAP_ADMIN_EMAIL") or "").strip().lower()
+BOOTSTRAP_ADMIN_PASSWORD = os.getenv("BOOTSTRAP_ADMIN_PASSWORD")
 
 #
 # argon2 password hasher
@@ -198,7 +201,45 @@ def create_server():
 
         DATABASE.autocommit = True
 
+    def _maybe_bootstrap_admin():
+        if not (BOOTSTRAP_ADMIN_NAME and BOOTSTRAP_ADMIN_EMAIL and BOOTSTRAP_ADMIN_PASSWORD):
+            return
+
+        cur = DATABASE.cursor()
+
+        # if an admin already exists, do nothing
+        cur.execute("SELECT COUNT(*) FROM users WHERE is_admin = TRUE;")
+        row = cur.fetchone()
+        if not row or not row[0]:
+            print("[bootstrap] error: could not fetch users", flush=True)
+            return
+        if row[0] > 0:
+            print("[bootstrap] admin exists; skipping", flush=True)
+            return
+
+        try:
+            hashed = PASSWORD_HASHER.hash(BOOTSTRAP_ADMIN_PASSWORD)
+            cur.execute(
+                """
+                INSERT INTO users (name, email, is_admin, password_hash)
+                VALUES (%s, %s, TRUE, %s),
+                ON CONFLICT (email) DO UPDATE
+                    SET is_admin = EXCLUDED.is_admin, password_hash = EXCLUDED.password_hash
+                RETURNING id;
+                """,
+                (BOOTSTRAP_ADMIN_NAME, BOOTSTRAP_ADMIN_EMAIL, hashed),
+            )
+            row = cur.fetchone()
+            if not row or not row[0]:
+                print("[bootstrap] error: could not fetch id after insert", flush=True)
+                return
+            uid = row[0]
+            print(f"[bootstrap] created/updated admin {BOOTSTRAP_ADMIN_EMAIL} (id={uid})", flush=True)
+        except Exception as e:
+            print(f"[bootstrap] error: {e}", flush=True)
+
     db_connect()
+    _maybe_bootstrap_admin()
 
     # simple health check for docker
     @auth_bp.route("/health")
@@ -317,7 +358,7 @@ def create_server():
                 (name, email, hashed_password),
             )
             row = cur.fetchone()
-            if not row  or not row[0]:
+            if not row or not row[0]:
                 return {"error": "could not fetch user_id after insert"}, 500
             user_id = row[0]
         except pg.Error as e:
