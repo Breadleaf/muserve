@@ -7,7 +7,6 @@ import tempfile
 import threading
 import os
 
-import DatabaseHandler
 import MusicHandler
 
 AUTH_BASE_URL = os.getenv("AUTH_BASE_URL", "http://auth:7000")
@@ -16,7 +15,6 @@ def create_server():
     server = flask.Flask(__name__)
     server.secret_key = os.getenv("APP_SECRET_KEY", "dev-change-me")
 
-    #db_handler = DatabaseHandler.DatabaseHandler()
     music_handler = MusicHandler.MusicHandler(["audio/mpeg"])
 
     #
