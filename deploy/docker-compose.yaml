@@ -95,8 +95,6 @@ services:
       JWT_ALG: "HS256"
     volumes:
       - auth_sock:/sockets:rw
-    #ports:
-    #  - "7000:7000"
     command: ["gunicorn", "app:server"]
     depends_on:
       auth_state:
@@ -112,27 +110,60 @@ services:
       retries: 20
     restart: unless-stopped
 
+  database_handler:
+    build:
+      context: ../database_handler/
+      dockerfile: Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6000/db/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  storage_handler:
+    build:
+      context: ../storage_handler/
+      dockerfile: Dockerfile
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/store/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
   app:
     build:
       context: ../app/
       dockerfile: Dockerfile
     depends_on:
-      postgres:
+      database_handler:
         condition: service_healthy
-      minio:
+      storage_handler:
         condition: service_healthy
       auth:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql://devuser:devpass@postgres:5432/myapp_dev
       AUTH_BASE_URL: http://auth:7000/auth
+      DB_BASE_URL: http://database_handler:7000/db
+      STORE_BASE_URL: http://storage_handler:7000/store
       APP_SECRET_KEY: "dev-change-me"
     working_dir: /app
     #volumes:
     #  - ./:/app:rw
     command: ["gunicorn", "app:server"]
-    #ports:
-    #  - "8000:8000"
 
 volumes:
   postgres_data:

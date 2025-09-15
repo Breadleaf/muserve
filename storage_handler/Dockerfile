@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY . .
 
-RUN apk add --no-cache dash
+RUN apk add --no-cache curl dash
 
 RUN pip install --no-cache-dir -r requirements.txt
 
