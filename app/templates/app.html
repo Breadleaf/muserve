@@ -1,0 +1,240 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width,initial-scale=1" />
+		<title>Muserve App</title>
+<style>
+/* make percentages include border & padding */
+*, *::before, *::after { box-sizing: border-box; }
+html, body {
+	margin: 0;
+	padding: 0;
+	height: 100%;
+}
+#audio { position:absolute; width:0; height:0; opacity:0; pointer-events:none; }
+.player {
+	height: 20%;
+	border: thick double orange;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+}
+.player .player_text {
+	border: thick double purple;
+	padding: 5px;
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+	width: 100%;
+	text-align: center;
+	height: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+.player .controller {
+	gap: 0.75em;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	border: thick double yellow;
+	height: 50%;
+	width: 100%;
+}
+#page {
+	height: 60%;
+	border: thick double red;
+}
+#footer {
+	height: 20%;
+	border: thick double blue;
+	display: flex;
+	flex-wrap: nowrap;
+	justify-content: space-around;
+	align-items: center;
+}
+#footer .nav_button {
+	height: 60%;
+	width: 20%;
+	border: thick double green;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+}
+#footer .nav_button .nav_text {
+	text-align: center;
+	vertical-align: baseline;
+}
+/* https://www.w3schools.com/howto/howto_css_disable_text_selection.asp */
+.prevent_select {
+	-webkit-user-select: none; /* Safari */
+	-ms-user-select: none; /* IE 10 and IE 11 */
+	user-select: none; /* Standard syntax */
+}
+/* https://developers.google.com/fonts/docs/material_symbols */
+.material-symbols-outlined {
+	font-family: 'Material Symbols Outlined';
+	font-weight: normal;
+	font-style: normal;
+	font-size: 24px;  /* Preferred icon size */
+	display: inline-block;
+	line-height: 1;
+	text-transform: none;
+	letter-spacing: normal;
+	word-wrap: normal;
+	white-space: nowrap;
+	direction: ltr;
+	font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+</style>
+	</head>
+	<body>
+		<!-- hidden elements -->
+		<audio id="audio" preload="none" crossorigin="anonymous"></audio>
+
+		<!-- page content -->
+		<div class="player">
+			<span class="player_text prevent_select">Nothing is playing...</span>
+			<div class="controller">
+				<button id="play">
+					<span id="play_status" class="material-symbols-outlined">
+						play_arrow
+					</span>
+				</button>
+				<input id="seek" type="range" min="0" max="1000" value="0" step="1">
+				<span id="time">0:00 / 0:00</span>
+			</div>
+		</div>
+
+		<div id="page"></div>
+		<div id="footer"></div>
+
+		<!-- scripts -->
+		<script>
+			// player
+			window.addEventListener("DOMContentLoaded", () => {
+				const audio = document.getElementById("audio");
+				const play_button = document.getElementById("play");
+				const play_status = document.getElementById("play_status");
+				const seek = document.getElementById("seek");
+				const time = document.getElementById("time");
+				const player_text = document.getElementById("player_text");
+
+				let durationKnown = false;
+
+				async function loadTrack(key) {
+					durationKnown = false;
+					const url = `/store/stream?bucket=muserve&key=${encodeURIComponent(key)}`;
+					console.log("loading", url);
+					audio.src = url;
+					audio.load();
+
+					/*
+					if ("mediaSession" in navigator) {
+						navigator.mediaSession.metadata = new MediaMetadata({
+							title: "Song Title",
+							artist: "Artist",
+							album: "Album Title",
+							artwork: [
+								{
+									src: "",
+									sizes: "",
+									type: "",
+								},
+							],
+						});
+
+					}
+					*/
+				}
+
+				play_button.addEventListener("click", async () => {
+					if (audio.paused) {
+						await audio.play();
+						play_status.textContent = "pause";
+					} else {
+						await audio.pause();
+						play_status.textContent = "play_arrow";
+					}
+				});
+
+				audio.addEventListener("timeupdate", () => {
+					if (!durationKnown || !isFinite(audio.duration)) return;
+					seek.value = Math.floor((audio.currentTime / audio.duration) * 1000);
+					time.textContent = `${format_time(audio.currentTime)} / ${format_time(audio.duration)}`
+				});
+
+				audio.addEventListener("loadedmetadata", () => {
+					durationKnown = Number.isFinite(audio.duration) && audio.duration > 0;
+					time.textContent = `0:00 / ${format_time(audio.duration || 0)}`;
+				});
+
+				audio.addEventListener("ended", () => {
+					play_status.textContent = "play_arrow";
+				});
+				
+				seek.addEventListener("input", () => {
+					if (!durationKnown) return;
+					const p = parseInt(seek.value, 10) / 1000;
+					audio.currentTime = p * audio.duration;
+				});
+
+				function format_time(ts) {
+					sec = Math.floor(ts || 0);
+					const m = Math.floor(sec / 60);
+					const s = sec % 60;
+					return `${m}:${String(s).padStart(2,'0')}`;
+				}
+
+				loadTrack("Drinking.mp3_320k.ogg");
+			});
+		</script>
+		<script>
+			// footer
+			window.addEventListener("DOMContentLoaded", () => {
+				const link = document.createElement('link');
+				link.rel = 'stylesheet';
+				link.href = 'https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined';
+				document.head.appendChild(link);
+
+				const makeIcon = (iconName) => {
+					const span = document.createElement("span");
+					span.className = "material-symbols-outlined";
+					span.textContent = iconName;
+					return span;
+				};
+
+				const footer = document.getElementById("footer");
+
+				const nav_button = (text, page, iconName) => {
+					const nav_button = document.createElement("div");
+					nav_button.addEventListener("click", () => {
+						console.log(page);
+					});
+					nav_button.classList.add("nav_button");
+
+					const nav_icon = makeIcon(iconName);
+					nav_icon.classList.add("prevent_select");
+					nav_button.appendChild(nav_icon);
+
+					const nav_text = document.createElement("p");
+					nav_text.textContent = text;
+					nav_text.classList.add("nav_text");
+					nav_text.classList.add("prevent_select");
+					nav_button.appendChild(nav_text);
+
+					footer.appendChild(nav_button);
+				};
+
+				nav_button("Home", "Home Page", "home");
+				nav_button("Search", "Search Page", "search");
+				nav_button("Upload", "Upload Page", "upload");
+				nav_button("Settings", "Settings Page", "settings");
+			});
+		</script>
+	</body>
+</html>

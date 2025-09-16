@@ -3,12 +3,15 @@ import magic
 import subprocess
 import io
 import typing
+import shutil
 
 FILE_CONVERSION_TYPE = typing.Tuple[
     None | typing.Mapping[str, io.BytesIO],
     None | str,
     None | str,
 ]
+
+FFMPEG_PATH = shutil.which("ffmpeg")
 
 class MusicHandler:
     def __init__(self, allowed):
@@ -46,7 +49,7 @@ class MusicHandler:
         """
 
         bitrates = ["64k", "128k", "320k"]
-        args = ["/bin/ffmpeg", "-i", path, "-c:a", "libvorbis", "-b:a"]
+        args = [FFMPEG_PATH, "-i", path, "-c:a", "libvorbis", "-b:a"]
 
         file_buffers: typing.Mapping[str, io.BytesIO] = {}
         for bitrate in bitrates:

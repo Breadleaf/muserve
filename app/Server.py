@@ -71,6 +71,10 @@ def create_server():
     def upload():
         return flask.render_template("upload.html")
 
+    @server.route("/app")
+    def app():
+        return flask.render_template("app.html")
+
     @server.post("/logout")
     def logout():
         flask.session.pop("action_token", None)

@@ -13,3 +13,7 @@ dev.json
 
 # docker / postgres
 logfile
+
+# music files
+*.mp3
+*.ogg
