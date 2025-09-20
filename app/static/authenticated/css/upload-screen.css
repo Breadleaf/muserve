@@ -1,0 +1,44 @@
+#drop {
+	border: 5px dashed black;
+	border-radius: 15px;
+	text-align: center;
+	padding: 25px;
+	transition: border-color 0.5s, background 0.5s, transform 0.3s;
+}
+#drop.is-dragover {
+	border-color: rgba(246, 18, 136, 0.45);
+	background: rgba(246, 18, 136, 0.11);
+	transform: scale(103%);
+}
+#controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+}
+#picker {
+	margin-left: auto;
+}
+button {
+	padding: 20px 30px;
+	cursor: pointer;
+}
+ul {
+	padding-left: 20px;
+}
+#dropOutput {
+	white-space: pre-wrap;
+}
+.file-row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 2.5px 0px;
+}
+.file-row button {
+	padding: 2px 6px;
+}
+.file-row span {
+	text-overflow: ellipsis;
+	overflow: hidden;
+	text-wrap: nowrap;
+}

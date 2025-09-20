@@ -90,6 +90,19 @@ html, body {
 	direction: ltr;
 	font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
 }
+.hidden {
+	display: none;
+}
+.scroll-container {
+	overflow: auto;
+	scrollbar-width: none; /* for firefox */
+}
+
+/* for webkit browsers (chrome, safari) */
+.scroll-container::-webkit-scrollbar {
+	width: 0;
+	height: 0;
+}
 </style>
 	</head>
 	<body>
@@ -110,10 +123,20 @@ html, body {
 			</div>
 		</div>
 
-		<div id="page"></div>
+		<div id="page" class="scroll-container">
+			<home-screen id="home_screen"></home-screen>
+			<search-screen id="search_screen" class="hidden"></search-screen>
+			<upload-screen id="upload_screen" class="hidden"></upload-screen>
+			<settings-screen id="settings_screen" class="hidden"></settings-screen>
+		</div>
+
 		<div id="footer"></div>
 
 		<!-- scripts -->
+		<script type="module" src="static/authenticated/js/home.js"></script>
+		<script type="module" src="static/authenticated/js/search.js"></script>
+		<script type="module" src="static/authenticated/js/upload.js"></script>
+		<script type="module" src="static/authenticated/js/settings.js"></script>
 		<script>
 			// player
 			window.addEventListener("DOMContentLoaded", () => {
@@ -209,11 +232,24 @@ html, body {
 				};
 
 				const footer = document.getElementById("footer");
+				const page_content = document.getElementById("page");
 
-				const nav_button = (text, page, iconName) => {
+				const show_screen = (screenID) => {
+					for (const screen of page_content.children) {
+						screen.classList.add("hidden");
+					}
+					const target_selection = document.getElementById(screenID);
+					if (target_selection) {
+						target_selection.classList.remove("hidden");
+					}
+				}
+
+
+				const nav_button = (text, screenID, iconName) => {
 					const nav_button = document.createElement("div");
 					nav_button.addEventListener("click", () => {
-						console.log(page);
+						console.log(screenID);
+						show_screen(screenID)
 					});
 					nav_button.classList.add("nav_button");
 
@@ -230,10 +266,10 @@ html, body {
 					footer.appendChild(nav_button);
 				};
 
-				nav_button("Home", "Home Page", "home");
-				nav_button("Search", "Search Page", "search");
-				nav_button("Upload", "Upload Page", "upload");
-				nav_button("Settings", "Settings Page", "settings");
+				nav_button("Home", "home_screen", "home");
+				nav_button("Search", "search_screen", "search");
+				nav_button("Upload", "upload_screen", "upload");
+				nav_button("Settings", "settings_screen", "settings");
 			});
 		</script>
 	</body>
