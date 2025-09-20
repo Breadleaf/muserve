@@ -59,6 +59,29 @@ def create_server():
         return wrapper
 
     #
+    # static
+    # https://stackoverflow.com/a/20648053
+    #
+
+    @server.route("/static/js/<path:path>")
+    def static_js(path):
+        return flask.send_from_directory("./static/js", path)
+
+    @server.route("/static/css/<path:path>")
+    def static_css(path):
+        return flask.send_from_directory("./static/css", path)
+
+    @server.route("/static/authenticated/js/<path:path>")
+    @require_login
+    def static_authenticated_js(path):
+        return flask.send_from_directory("./static/authenticated/js", path)
+
+    @server.route("/static/authenticated/css/<path:path>")
+    @require_login
+    def static_authenticated_css(path):
+        return flask.send_from_directory("./static/authenticated/css", path)
+
+    #
     # pages
     #
 
@@ -72,6 +95,7 @@ def create_server():
         return flask.render_template("upload.html")
 
     @server.route("/app")
+    @require_login
     def app():
         return flask.render_template("app.html")
 
