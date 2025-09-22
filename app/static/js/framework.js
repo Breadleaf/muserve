@@ -52,6 +52,9 @@ $._setup = function (element) {
 		return this;
 	}
 
+	// Important NOTE: if you pass a arrow function, it will inherit the
+	// `this` from the lexical scope, if you pass a `function ()` function,
+	// `matching` will be used as `this` inside the function
 	element.$delegate = function (eventType, selector, callback) {
 		this.addEventListener(eventType, (event) => {
 			// get element that triggered the event
