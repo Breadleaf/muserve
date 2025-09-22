@@ -11,7 +11,8 @@ customElements.define(
 			const container = document.createElement("div");
 
 			$.$registerRoot(container);
-			$.$create("p").$textContent("hello from settings");
+			$.$create("p")
+				.$textContent("hello from settings");
 
 			this.appendChild(container);
 		}
