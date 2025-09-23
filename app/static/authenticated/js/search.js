@@ -61,10 +61,16 @@ customElements.define(
 
 			$.$registerRoot(this.shadowRoot);
 
-			const search = $.$create("input")
+
+			const searchContainer = $.$create("div");
+			$.$create("p", {}, searchContainer).$textContent("Song:");
+			const songSearch = $.$create("input", {}, searchContainer)
 				.$type("search")
 				.$id("songSearch");
-
+			$.$create("p", {}, searchContainer).$textContent("Artist:");
+			const artistSearch = $.$create("input", {}, searchContainer)
+				.$type("search")
+				.$id("artistSearch");
 			// TODO: delete me
 			const temp = $.$create("p").$id("searchOut");
 
@@ -107,10 +113,17 @@ customElements.define(
 				});
 			}
 
-			// search.$on("selectionchange", debounce_ms(() => { // change text or cursor
-			search.$on("input", debounce_ms(() => {              // change text
-				console.log(`Search Term: ${search.value}`)
-			}, 500));
+			const debouncedSearch = debounce_ms((trigger) => {
+				console.log("Search Updated By:", trigger);
+				console.log(`Search Term: Artist(${artistSearch.value})/Song(${songSearch.value})`);
+			}, 800);
+			searchContainer.$delegate(
+				"input",
+				'input[type="search"]',
+				function (event) {
+					debouncedSearch(this);
+				},
+			);
 
 			listContainer.$delegate("click", ".listItem", function (event) {
 				console.log("Clicked item:", this);
