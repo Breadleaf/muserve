@@ -8,7 +8,7 @@ import functools
 import typing
 import urllib.parse as up
 
-import psycopg2 as pg
+import psycopg as pg
 import argon2 as a2
 import argon2.low_level as a2ll
 
@@ -68,7 +68,7 @@ def connect_refresh_store() -> RefreshStoreProxy:
 
 # initialized in create_server()
 STORE: RefreshStoreProxy
-DATABASE: pg.extensions.connection
+DATABASE: pg.Connection
 
 #
 # JWT helpers
@@ -223,15 +223,17 @@ def create_server():
         if not DATABASE_URL:
             raise RuntimeError("DATABASE_URL is required in auth service")
 
-        parsed = up.urlparse(DATABASE_URL)
+        # parsed = up.urlparse(DATABASE_URL)
 
-        DATABASE = pg.connect(
-            database=parsed.path[1:],
-            user=parsed.username,
-            password=parsed.password,
-            host=parsed.hostname,
-            port=parsed.port,
-        )
+        # DATABASE = pg.connect(
+        #     database=parsed.path[1:],
+        #     user=parsed.username,
+        #     password=parsed.password,
+        #     host=parsed.hostname,
+        #     port=parsed.port,
+        # )
+
+        DATABASE = pg.connect(DATABASE_URL)
 
         DATABASE.autocommit = True
 

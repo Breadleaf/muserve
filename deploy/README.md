@@ -10,7 +10,8 @@ docker compose exec <service> # interactive shell of process
 ```
 
 Note: if you are not in the `deploy/` dir, you should use the
-`-f "path/to/docker-compose.yaml"` in the commands
+`-f "path/to/docker-compose.yaml"` in the commands before the compose
+subcommand. ex: `docker compose -f ... up --build`
 
 ## Database Schema
 

@@ -2,7 +2,7 @@ import os
 import urllib.parse as up
 import sys
 
-import psycopg2 as pg
+import psycopg as pg
 import argon2 as a2
 import argon2.low_level as a2ll
 
@@ -21,7 +21,7 @@ PASSWORD_HASHER = a2.PasswordHasher(
 
 DATABASE_URL = os.environ.get("DATABASE_URL", None)
 
-def _database_connect() -> pg.extensions.connection:
+def _database_connect() -> pg.Connection:
     if not DATABASE_URL:
         print(
             "[bootstrap] error: DATABASE_URL is not defined",
@@ -30,14 +30,15 @@ def _database_connect() -> pg.extensions.connection:
         )
         sys.exit(1)
 
-    parsed = up.urlparse(DATABASE_URL)
-    conn = pg.connect(
-        database=parsed.path[1:],
-        user=parsed.username,
-        password=parsed.password,
-        host=parsed.hostname,
-        port=parsed.port,
-    )
+    # parsed = up.urlparse(DATABASE_URL)
+    # conn = pg.connect(
+    #     database=parsed.path[1:],
+    #     user=parsed.username,
+    #     password=parsed.password,
+    #     host=parsed.hostname,
+    #     port=parsed.port,
+    # )
+    conn = pg.connect(DATABASE_URL)
     conn.autocommit = True
     return conn
 

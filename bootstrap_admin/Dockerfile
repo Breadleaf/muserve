@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY . .
 
+RUN apk add --no-cache libpq
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 ENV \

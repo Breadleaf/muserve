@@ -4,7 +4,7 @@ all: help
 
 help:
 	@echo "make targets:"
-	@echo "    setup(venv, selfsign)"
+	@echo "    setup(venv)"
 	@echo "    venv"
 	@echo "    clean"
 

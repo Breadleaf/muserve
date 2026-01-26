@@ -1,4 +1,4 @@
-import psycopg2
+import psycopg as pg
 
 import os
 import sys
@@ -15,7 +15,7 @@ class DatabaseHandler:
         parsed_url = up.urlparse(DATABASE_URL)
 
         try:
-            self.con = psycopg2.connect(
+            self.con = pg.connect(
                 database=parsed_url.path[1:],
                 user=parsed_url.username,
                 password=parsed_url.password,
@@ -23,7 +23,7 @@ class DatabaseHandler:
                 port=parsed_url.port
             )
 
-        except psycopg2.Error as e:
+        except pg.Error as e:
             print(
                 f"error connecting to PostgreSQL server: {e}",
                 file=sys.stderr
@@ -39,7 +39,7 @@ class DatabaseHandler:
             # return (True, result) for golang-like error handling
             return (True, res)
         
-        except psycopg2.Error as e:
+        except pg.Error as e:
             # return (False, error) for golang-like error handling
             return (False, f"db error from fetch(): {e}")
 
@@ -53,5 +53,5 @@ class DatabaseHandler:
             # return no error
             return None
 
-        except psycopg2.Error as e:
+        except pg.Error as e:
             return f"db error from insert(): {e}"
